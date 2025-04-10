@@ -82,7 +82,7 @@ export default function Home() {
 
     setJournalEntries((prevEntries) => [newEntry, ...prevEntries]);
     setEntryText(""); // Clear the textarea after saving
-    setAudioURL(null); // Clear the audio URL after saving
+    //setAudioURL(null); // Clear the audio URL after saving
     toast({
       title: "Success",
       description: "Journal entry saved!",
@@ -155,6 +155,11 @@ export default function Home() {
       title: "Success",
       description: "Journal entry deleted!",
     });
+  };
+
+  const clearAudioNote = () => {
+    setAudioURL(null);
+    setEntryText("");
   };
 
 
@@ -234,7 +239,7 @@ export default function Home() {
                     <audio src={audioURL} controls className="w-full"></audio>
                   )}
                   <DialogFooter>
-                    <Button type="button" onClick={() => setAudioURL(null)}>
+                    <Button type="button" onClick={clearAudioNote}>
                       Clear
                     </Button>
                   </DialogFooter>
@@ -243,7 +248,7 @@ export default function Home() {
             )}
              {audioURL && !isRecording && !isPaused &&(
               <Button
-                onClick={() => setAudioURL(null)}
+                onClick={clearAudioNote}
                 className="bg-secondary text-secondary-foreground w-1/2 ml-1"
               >
                 Clear Note
