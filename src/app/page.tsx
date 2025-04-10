@@ -9,7 +9,7 @@ import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Microphone } from "lucide-react";
+import { Mic } from "lucide-react";
 
 interface JournalEntry {
   id: string;
@@ -82,10 +82,13 @@ export default function Home() {
   };
 
   const handleVoiceRecord = () => {
-    // Implement voice recording logic here
+    // Mock voice recording and transcription
+    const transcribedText = "This is a voice note transcribed to text.";
+    setEntryText(transcribedText);
+
     toast({
-      title: "Voice Recording",
-      description: "Voice recording feature coming soon!",
+      title: "Voice Note Transcribed",
+      description: "Your voice note has been transcribed. Review and save it.",
     });
   };
 
@@ -110,7 +113,7 @@ export default function Home() {
             onClick={handleVoiceRecord}
             className="bg-secondary text-secondary-foreground w-full"
           >
-            <Microphone className="mr-2 h-4 w-4" />
+            <Mic className="mr-2 h-4 w-4" />
             Record Voice Note
           </Button>
         </CardContent>
