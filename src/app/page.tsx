@@ -9,6 +9,7 @@ import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Microphone } from "lucide-react";
 
 interface JournalEntry {
   id: string;
@@ -80,12 +81,20 @@ export default function Home() {
     });
   };
 
+  const handleVoiceRecord = () => {
+    // Implement voice recording logic here
+    toast({
+      title: "Voice Recording",
+      description: "Voice recording feature coming soon!",
+    });
+  };
+
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2 bg-muted">
+    <div className="flex flex-col items-center justify-center min-h-screen py-2">
       <Toaster />
       <h1 className="text-3xl font-bold mb-4 text-primary">Echo Journal</h1>
-      <Card className="w-full max-w-2xl p-4">
+      <Card className="w-full max-w-md p-4">
         <CardHeader>
           <Label htmlFor="entryText">New Entry</Label>
         </CardHeader>
@@ -97,6 +106,13 @@ export default function Home() {
             onChange={(e) => setEntryText(e.target.value)}
             className="mb-2"
           />
+          <Button
+            onClick={handleVoiceRecord}
+            className="bg-secondary text-secondary-foreground w-full"
+          >
+            <Microphone className="mr-2 h-4 w-4" />
+            Record Voice Note
+          </Button>
         </CardContent>
         <CardFooter className="justify-end">
           <Button onClick={handleSaveEntry} className="bg-accent text-accent-foreground">
@@ -105,7 +121,7 @@ export default function Home() {
         </CardFooter>
       </Card>
 
-      <div className="w-full max-w-2xl mt-6">
+      <div className="w-full max-w-md mt-6">
         <h2 className="text-2xl font-semibold mb-3 text-primary">
           Recent Entries
         </h2>

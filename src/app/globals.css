@@ -5,6 +5,7 @@
 
 body {
   font-family: Roboto, sans-serif;
+  @apply bg-muted; /* Apply background color to the body */
 }
 
 @layer base {
@@ -87,4 +88,3 @@ body {
     @apply bg-background text-foreground;
   }
 }
-

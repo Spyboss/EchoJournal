@@ -1,7 +1,9 @@
+
 import type {Metadata} from 'next';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import Link from 'next/link';
+import { ThemeProvider } from "@/components/theme-provider"
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -24,13 +26,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <nav className="p-4 bg-secondary">
-          <Link href="/" className="mr-4">Daily Journal</Link>
-          <Link href="/weekly-reflection">Weekly Reflection</Link>
-        </nav>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <nav className="p-4 bg-secondary flex justify-between items-center">
+          <div>
+            <Link href="/" className="mr-4">Daily Journal</Link>
+            <Link href="/weekly-reflection">Weekly Reflection</Link>
+          </div>
+            <a href="https://twitter.com/shadcn" target="_blank" rel="noreferrer">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-6 w-6"
+              >
+                <path d="M22 4s-.7 2.1-2 3.4c1.6 1 2.8 3.5 3.2 6.1-1.2 1-2.5 2.2-3.7 3.4 1 1.4 2.1 2.8 3.1 4.3-1.4 1-2.8 2.1-4.1 3.1 1-1.4 2.1-2.8 3.1-4.3-1.2 1-2.5 2.2-3.7 3.4-1 1.4-2.1 2.8-3.1 4.3 1.4-1 2.8-2.1 4.1-3.1-1-1.4-2.1-2.8-3.1-4.3-1.2 1-2.5 2.2-3.7 3.4 1-1.4 2.1-2.8 3.1-4.3-1.4 1-2.8 2.1-4.1 3.1"></path>
+                <path d="M22 4c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V4z"></path>
+              </svg>
+            </a>
+          </nav>
         {children}
+        </ThemeProvider>
       </body>
     </html>
   );
