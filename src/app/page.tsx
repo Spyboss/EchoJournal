@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
-import { Toaster,  } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -82,7 +82,7 @@ export default function Home() {
 
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2 bg-light-gray">
+    <div className="flex flex-col items-center justify-center min-h-screen py-2 bg-muted">
       <Toaster />
       <h1 className="text-3xl font-bold mb-4 text-primary">Echo Journal</h1>
       <Card className="w-full max-w-2xl p-4">
@@ -99,7 +99,7 @@ export default function Home() {
           />
         </CardContent>
         <CardFooter className="justify-end">
-          <Button onClick={handleSaveEntry} className="bg-teal text-white">
+          <Button onClick={handleSaveEntry} className="bg-accent text-accent-foreground">
             Save Entry
           </Button>
         </CardFooter>
@@ -112,15 +112,15 @@ export default function Home() {
         <ScrollArea className="rounded-md border h-[400px] w-full">
           <div className="flex flex-col gap-4 p-4">
             {journalEntries.map((entry) => (
-              <Card key={entry.id} className="mb-4 bg-white shadow-md rounded-md">
+              <Card key={entry.id} className="mb-4 shadow-md rounded-md">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                  <p className="text-sm text-gray-500">{entry.timestamp}</p>
+                  <p className="text-sm text-muted-foreground">{entry.timestamp}</p>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-800">{entry.text}</p>
                   {entry.sentimentSummary && (
                     <div className="mt-2">
-                      <Label className="text-sm text-gray-600">
+                      <Label className="text-sm text-muted-foreground">
                         Sentiment Summary:
                       </Label>
                       <p className="text-gray-700">{entry.sentimentSummary}</p>
@@ -130,7 +130,7 @@ export default function Home() {
               </Card>
             ))}
             {journalEntries.length === 0 && (
-              <p className="text-gray-500">No entries yet. Start writing!</p>
+              <p className="text-muted-foreground">No entries yet. Start writing!</p>
             )}
           </div>
         </ScrollArea>
@@ -138,4 +138,3 @@ export default function Home() {
     </div>
   );
 }
-
