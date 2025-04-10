@@ -9,7 +9,10 @@ import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic } from "lucide-react";
+import { Mic, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface JournalEntry {
   id: string;
@@ -25,6 +28,9 @@ const generateId = (): string => {
 export default function Home() {
   const [entryText, setEntryText] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   useEffect(() => {
     // Load entries from local storage on mount
@@ -38,7 +44,6 @@ export default function Home() {
     // Save entries to local storage whenever journalEntries changes
     localStorage.setItem("journalEntries", JSON.stringify(journalEntries));
   }, [journalEntries]);
-
 
   const handleSaveEntry = async () => {
     if (entryText.trim() === "") {
@@ -75,20 +80,59 @@ export default function Home() {
 
     setJournalEntries((prevEntries) => [newEntry, ...prevEntries]);
     setEntryText(""); // Clear the textarea after saving
+    setAudioURL(null); // Clear the audio URL after saving
     toast({
       title: "Success",
       description: "Journal entry saved!",
     });
   };
 
-  const handleVoiceRecord = () => {
-    // Mock voice recording and transcription
-    const transcribedText = "This is a voice note transcribed to text.";
-    setEntryText(transcribedText);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      recorder.start();
+      setIsRecording(true);
 
+      const audioChunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const url = URL.createObjectURL(audioBlob);
+        setAudioURL(url);
+        setIsRecording(false);
+
+        // Convert audio to text using a mock transcription
+        // In a real implementation, you would send the audioBlob to a transcription service
+        const transcribedText = "This is a voice note transcribed to text.";
+        setEntryText(transcribedText);
+      };
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      toast({
+        title: "Recording Failed",
+        description: "Failed to start recording. Please check your microphone permissions.",
+        variant: "destructive",
+      });
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+    }
+  };
+
+  const handleDeleteEntry = (id: string) => {
+    setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
     toast({
-      title: "Voice Note Transcribed",
-      description: "Your voice note has been transcribed. Review and save it.",
+      title: "Success",
+      description: "Journal entry deleted!",
     });
   };
 
@@ -109,13 +153,44 @@ export default function Home() {
             onChange={(e) => setEntryText(e.target.value)}
             className="mb-2"
           />
-          <Button
-            onClick={handleVoiceRecord}
-            className="bg-secondary text-secondary-foreground w-full"
-          >
-            <Mic className="mr-2 h-4 w-4" />
-            Record Voice Note
-          </Button>
+          {audioURL ? (
+            <div className="mb-2">
+              <audio src={audioURL} controls className="w-full"></audio>
+            </div>
+          ) : null}
+          <div className="flex justify-between">
+            <Button
+              onClick={isRecording ? stopRecording : startRecording}
+              className="bg-secondary text-secondary-foreground w-1/2 mr-1"
+              disabled={isRecording}
+            >
+              <Mic className="mr-2 h-4 w-4" />
+              {isRecording ? "Recording..." : "Record Voice Note"}
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-secondary text-secondary-foreground w-1/2 ml-1" disabled={!audioURL}>
+                  Review Note
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Voice Note Preview</DialogTitle>
+                  <DialogDescription>
+                    Review your voice note before saving.
+                  </DialogDescription>
+                </DialogHeader>
+                {audioURL && (
+                  <audio src={audioURL} controls className="w-full"></audio>
+                )}
+                <DialogFooter>
+                  <Button type="button" onClick={() => setAudioURL(null)}>
+                    Clear
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardContent>
         <CardFooter className="justify-end">
           <Button onClick={handleSaveEntry} className="bg-accent text-accent-foreground">
@@ -134,6 +209,26 @@ export default function Home() {
               <Card key={entry.id} className="mb-4 shadow-md rounded-md">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                   <p className="text-sm text-muted-foreground">{entry.timestamp}</p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete your entry from our servers.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteEntry(entry.id)}>Continue</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-800">{entry.text}</p>

@@ -4,6 +4,7 @@ import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import Link from 'next/link';
 import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,6 +35,8 @@ export default function RootLayout({
             <Link href="/" className="mr-4">Daily Journal</Link>
             <Link href="/weekly-reflection">Weekly Reflection</Link>
           </div>
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
             <a href="https://twitter.com/shadcn" target="_blank" rel="noreferrer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -49,11 +52,11 @@ export default function RootLayout({
                 <path d="M22 4c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V4z"></path>
               </svg>
             </a>
-          </nav>
+          </div>
+        </nav>
         {children}
         </ThemeProvider>
       </body>
     </html>
   );
 }
-
