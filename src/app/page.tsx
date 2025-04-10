@@ -125,6 +125,7 @@ export default function Home() {
   const stopRecording = () => {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
+      setIsRecording(false);
     }
   };
 
