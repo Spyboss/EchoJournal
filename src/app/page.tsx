@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, Trash2 } from "lucide-react";
+import { Mic, Trash2, Pause, Play } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -29,8 +29,10 @@ export default function Home() {
   const [entryText, setEntryText] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     // Load entries from local storage on mount
@@ -92,19 +94,21 @@ export default function Home() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       setMediaRecorder(recorder);
+      audioChunksRef.current = []; // Initialize the array to collect audio chunks
       recorder.start();
       setIsRecording(true);
+      setIsPaused(false);
 
-      const audioChunks: Blob[] = [];
       recorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
+        audioChunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
         setIsRecording(false);
+        setIsPaused(false);
 
         // Convert audio to text using a mock transcription
         // In a real implementation, you would send the audioBlob to a transcription service
@@ -119,6 +123,21 @@ export default function Home() {
         variant: "destructive",
       });
       setIsRecording(false);
+      setIsPaused(false);
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.pause();
+      setIsPaused(true);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorder && isRecording && isPaused) {
+      mediaRecorder.resume();
+      setIsPaused(false);
     }
   };
 
@@ -126,6 +145,7 @@ export default function Home() {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
       setIsRecording(false);
+      setIsPaused(false);
     }
   };
 
@@ -160,37 +180,67 @@ export default function Home() {
             </div>
           ) : null}
           <div className="flex justify-between">
-            <Button
-              onClick={isRecording ? stopRecording : startRecording}
-              className="bg-secondary text-secondary-foreground w-1/2 mr-1"
-              disabled={isRecording}
-            >
-              <Mic className="mr-2 h-4 w-4" />
-              {isRecording ? "Recording..." : "Record Voice Note"}
-            </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-secondary text-secondary-foreground w-1/2 ml-1" disabled={!audioURL}>
-                  Review Note
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Voice Note Preview</DialogTitle>
-                  <DialogDescription>
-                    Review your voice note before saving.
-                  </DialogDescription>
-                </DialogHeader>
-                {audioURL && (
-                  <audio src={audioURL} controls className="w-full"></audio>
-                )}
-                <DialogFooter>
-                  <Button type="button" onClick={() => setAudioURL(null)}>
-                    Clear
+            {!isRecording && !isPaused && (
+              <Button
+                onClick={startRecording}
+                className="bg-secondary text-secondary-foreground w-1/2 mr-1"
+                disabled={isRecording}
+              >
+                <Mic className="mr-2 h-4 w-4" />
+                Record Voice Note
+              </Button>
+            )}
+            {isRecording && !isPaused && (
+              <Button
+                onClick={pauseRecording}
+                className="bg-secondary text-secondary-foreground w-1/2 mr-1"
+              >
+                <Pause className="mr-2 h-4 w-4" />
+                Pause Recording
+              </Button>
+            )}
+            {isRecording && isPaused && (
+              <Button
+                onClick={resumeRecording}
+                className="bg-secondary text-secondary-foreground w-1/2 mr-1"
+              >
+                <Play className="mr-2 h-4 w-4" />
+                Resume Recording
+              </Button>
+            )}
+            {isRecording && (
+              <Button
+                onClick={stopRecording}
+                className="bg-secondary text-secondary-foreground w-1/2 ml-1"
+              >
+                Stop Recording
+              </Button>
+            )}
+            {!isRecording && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-secondary text-secondary-foreground w-1/2 ml-1" disabled={!audioURL}>
+                    Review Note
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Voice Note Preview</DialogTitle>
+                    <DialogDescription>
+                      Review your voice note before saving.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {audioURL && (
+                    <audio src={audioURL} controls className="w-full"></audio>
+                  )}
+                  <DialogFooter>
+                    <Button type="button" onClick={() => setAudioURL(null)}>
+                      Clear
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </CardContent>
         <CardFooter className="justify-end">
