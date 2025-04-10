@@ -241,6 +241,14 @@ export default function Home() {
                 </DialogContent>
               </Dialog>
             )}
+             {audioURL && !isRecording && !isPaused &&(
+              <Button
+                onClick={() => setAudioURL(null)}
+                className="bg-secondary text-secondary-foreground w-1/2 ml-1"
+              >
+                Clear Note
+              </Button>
+            )}
           </div>
         </CardContent>
         <CardFooter className="justify-end">
