@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { addJournalEntry, getJournalEntries } from '@/lib/firestore';
 
+export const dynamic = 'force-static';
+export const revalidate = false;
+
 export async function POST(request: Request) {
   try {
     const { userId, entryText } = await request.json();

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { analyzeSentiment } from '@/ai/flows/analyze-sentiment'; // Assuming the flow can be imported
 
+export const dynamic = 'force-static';
+export const revalidate = false;
+
 export async function POST(request: Request) {
   try {
     const { entryText } = await request.json();
