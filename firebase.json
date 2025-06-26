@@ -41,7 +41,7 @@
     }
   ],
   "apphosting": {
-    "backendId": "studio",
+    "backendId": "echo",
     "rootDir": "/",
     "ignore": [
       "node_modules",
