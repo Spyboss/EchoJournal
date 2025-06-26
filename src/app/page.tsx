@@ -89,21 +89,8 @@ export default function Home() {
     }
 
     try {
-      // Save entry to Firebase
+      // Save entry to Firebase (sentiment analysis is now included during creation)
       await JournalService.createEntry(user.uid, entryText);
-      
-      // Analyze sentiment and update the entry
-      let sentimentSummary: string | undefined;
-      try {
-        const sentimentAnalysis = await JournalService.analyzeSentiment(entryText);
-        sentimentSummary = sentimentAnalysis.summary;
-        
-        // Update the entry with sentiment analysis
-        await JournalService.updateEntrySentiment(user.uid, entryText, sentimentSummary);
-      } catch (error) {
-        console.error("Sentiment analysis failed:", error);
-        // Don't fail the entire save if sentiment analysis fails
-      }
 
       // Reload entries to get the latest data
       await loadEntries();

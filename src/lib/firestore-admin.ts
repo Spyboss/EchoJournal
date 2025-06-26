@@ -12,17 +12,24 @@ interface JournalEntry {
 
 /**
  * Adds a new journal entry to Firestore using Admin SDK
- * @param userId - The user's unique identifier
+ * @param userId - The user ID
  * @param entryText - The journal entry text
+ * @param sentimentSummary - Optional sentiment analysis summary
  * @returns Promise that resolves to the document reference
  */
-export const addJournalEntryAdmin = async (userId: string, entryText: string): Promise<any> => {
+export const addJournalEntryAdmin = async (userId: string, entryText: string, sentimentSummary?: string): Promise<any> => {
   try {
-    const docRef = await adminDb.collection('entries').add({
+    const entryData: any = {
       userId: userId,
       entryText: entryText,
       timestamp: FieldValue.serverTimestamp(),
-    });
+    };
+    
+    if (sentimentSummary) {
+      entryData.sentimentSummary = sentimentSummary;
+    }
+    
+    const docRef = await adminDb.collection('entries').add(entryData);
     console.log('Document written with ID: ', docRef.id);
     return docRef;
   } catch (e) {

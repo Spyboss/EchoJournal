@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addJournalEntryAdmin, getJournalEntriesAdmin, deleteJournalEntryAdmin } from '@/lib/firestore-admin';
+import { analyzeSentiment } from '@/ai/flows/analyze-sentiment';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing userId or entryText' }, { status: 400 });
     }
 
-    await addJournalEntryAdmin(userId, entryText);
+    // Perform sentiment analysis
+    let sentimentSummary: string | undefined;
+    try {
+      const sentimentResult = await analyzeSentiment({ journalEntry: entryText });
+      sentimentSummary = sentimentResult.summary;
+    } catch (sentimentError) {
+      console.warn('Sentiment analysis failed:', sentimentError);
+      // Continue without sentiment if analysis fails
+    }
+
+    await addJournalEntryAdmin(userId, entryText, sentimentSummary);
 
     return NextResponse.json({ message: 'Journal entry added successfully' }, { status: 201 });
   } catch (error) {
