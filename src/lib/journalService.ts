@@ -97,20 +97,7 @@ export class JournalService {
     return result.sentiment;
   }
 
-  static async updateEntrySentiment(userId: string, entryText: string, sentimentSummary: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/entries/sentiment`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId, entryText, sentimentSummary }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update sentiment');
-    }
-  }
+  // Sentiment analysis is now included during entry creation
 
   static async deleteEntry(entryId: string, userId: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/entries?id=${encodeURIComponent(entryId)}&userId=${encodeURIComponent(userId)}`, {
