@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { addJournalEntryAdmin, getJournalEntriesAdmin, deleteJournalEntryAdmin } from '@/lib/firestore-admin';
 

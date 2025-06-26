@@ -1,5 +1,6 @@
-import { adminDb } from './firebase-admin';
+
 import { FieldValue, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { adminDb } from './firebase-admin';
 
 interface JournalEntry {
   id?: string;

@@ -97,8 +97,8 @@ export class JournalService {
     return result.sentiment;
   }
 
-  static async deleteEntry(entryId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/entries?id=${encodeURIComponent(entryId)}`, {
+  static async deleteEntry(entryId: string, userId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/entries?id=${encodeURIComponent(entryId)}&userId=${encodeURIComponent(userId)}`, {
       method: 'DELETE',
     });
 

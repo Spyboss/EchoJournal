@@ -185,7 +185,7 @@ export default function Home() {
     if (!user) return;
     
     try {
-      await JournalService.deleteEntry(id);
+      await JournalService.deleteEntry(id, user.uid);
       // Remove from local state after successful deletion
       setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
       toast({
