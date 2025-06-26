@@ -1,5 +1,18 @@
 {
-
+  "hosting": {
+    "public": "out",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "emulators": {
     "auth": {
       "port": 9099
@@ -28,7 +41,7 @@
     }
   ],
   "apphosting": {
-    "backendId": "echo",
+    "backendId": "studio",
     "rootDir": "/",
     "ignore": [
       "node_modules",

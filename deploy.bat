@@ -22,8 +22,8 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/4] Deploying to Firebase App Hosting...
-call firebase deploy --only apphosting
+echo [3/4] Deploying to Firebase...
+call firebase deploy
 if %errorlevel% neq 0 (
     echo ERROR: Deployment failed
     pause
@@ -34,9 +34,9 @@ echo.
 echo [4/4] Deployment completed successfully!
 echo.
 echo Your app is now live at:
-echo https://echo--echo-journal-hnzep.us-central1.hosted.app/
+echo https://studio--echo-journal-hnzep.us-central1.hosted.app/
 echo.
 echo Pulse API endpoints available at:
-echo https://echo--echo-journal-hnzep.us-central1.hosted.app/api/pulse
+echo https://studio--echo-journal-hnzep.us-central1.hosted.app/api/pulse
 echo.
 pause
