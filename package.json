@@ -59,10 +59,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@jest/globals": "^30.0.3",
-=======
->>>>>>> 10944310e16b83a248e18c746340bdc449936c9c
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
