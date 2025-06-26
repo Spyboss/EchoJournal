@@ -7,7 +7,6 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
-    "build:firebase": "next build && firebase deploy --only hosting",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -15,8 +14,7 @@
     "test:watch": "jest --watch",
     "test:ci": "npm run typecheck && next lint && next build",
     "firebase:emulators": "firebase emulators:start",
-    "firebase:deploy": "npm run build && firebase deploy",
-    "firebase:serve": "firebase serve"
+    "deploy": "npm run build && firebase deploy --only apphosting"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.0.4",
@@ -48,6 +46,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "firebase": "^11.9.1",
+    "firebase-admin": "^13.4.0",
     "genkit": "^1.0.4",
     "lucide-react": "^0.475.0",
     "next": "15.2.3",

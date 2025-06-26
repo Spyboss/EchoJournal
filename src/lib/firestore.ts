@@ -1,5 +1,13 @@
-import { addDoc, collection, query, where, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy, 
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db } from './firebase';
 
 interface JournalEntry {
   userId: string;
@@ -9,10 +17,10 @@ interface JournalEntry {
 }
 
 /**
- * Adds a new journal entry to the 'entries' collection in Firestore.
- * @param userId The ID of the user.
- * @param entryText The text of the journal entry.
- * @returns A Promise that resolves with the DocumentReference of the newly created document.
+ * Adds a new journal entry to Firestore
+ * @param userId - The user's unique identifier
+ * @param entryText - The journal entry text
+ * @returns Promise that resolves to the document reference
  */
 export const addJournalEntry = async (userId: string, entryText: string): Promise<any> => {
   try {
@@ -30,9 +38,9 @@ export const addJournalEntry = async (userId: string, entryText: string): Promis
 };
 
 /**
- * Retrieves all journal entries for a given user ID from the 'entries' collection.
- * @param userId The ID of the user.
- * @returns A Promise that resolves with an array of journal entries.
+ * Retrieves journal entries for a specific user from Firestore
+ * @param userId - The user's unique identifier
+ * @returns Promise that resolves to an array of journal entries
  */
 export const getJournalEntries = async (userId: string): Promise<JournalEntry[]> => {
   try {

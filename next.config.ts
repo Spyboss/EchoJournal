@@ -8,7 +8,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Removed static export to support API routes
   trailingSlash: true,
   images: {
     unoptimized: true,

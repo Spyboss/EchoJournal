@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addJournalEntry, getJournalEntries } from '@/lib/firestore';
+import { addJournalEntryAdmin, getJournalEntriesAdmin } from '@/lib/firestore-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing userId or entryText' }, { status: 400 });
     }
 
-    await addJournalEntry(userId, entryText);
+    await addJournalEntryAdmin(userId, entryText);
 
     return NextResponse.json({ message: 'Journal entry added successfully' }, { status: 201 });
   } catch (error) {
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing userId query parameter' }, { status: 400 });
     }
 
-    const entries = await getJournalEntries(userId);
+    const entries = await getJournalEntriesAdmin(userId);
     return NextResponse.json(entries, { status: 200 });
   } catch (error) {
     console.error('Error fetching journal entries:', error);
