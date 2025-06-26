@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, getDocs, orderBy, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, query, where, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface JournalEntry {
