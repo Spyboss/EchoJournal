@@ -15,7 +15,7 @@ export const saveJournalEntry = async (entryText: string) => {
   };
 
   try {
-    await addJournalEntry(newEntry);
+    await addJournalEntry(userId, entryText);
   } catch (error) {
     console.error("Error saving journal entry:", error);
     throw error; // Re-throw to be handled by the calling component

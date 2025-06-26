@@ -43,8 +43,8 @@ export const getJournalEntries = async (userId: string): Promise<JournalEntry[]>
     );
     const querySnapshot = await getDocs(q);
     const entries: JournalEntry[] = [];
-    querySnapshot.forEach((doc) => {
-      entries.push({ id: doc.id, ...doc.data() } as JournalEntry);
+    querySnapshot.forEach((doc: any) => {
+      entries.push({ id: doc.id, ...doc.data() } as any);
     });
     return entries;
   } catch (e) {

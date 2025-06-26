@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     }
 
     // Call the Genkit AI flow for sentiment analysis
-    const sentimentResult = await analyzeSentiment({ entryText }); // Assuming analyzeSentiment takes an object with entryText
+    const sentimentResult = await analyzeSentiment({ journalEntry: entryText }); // Assuming analyzeSentiment takes an object with journalEntry
 
     return NextResponse.json({ sentiment: sentimentResult }, { status: 200 });
   } catch (error) {
