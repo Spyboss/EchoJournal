@@ -12,9 +12,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // Get the last 7 journal entries for the user
+    // Get the last 7 journal entries for the user (fresh data)
     const entries = await getJournalEntriesAdmin(userId);
     const last7Entries = entries.slice(0, 7);
+    
+    console.log(`Found ${entries.length} total entries, using last ${last7Entries.length} for reflection`);
+    console.log('Entry timestamps:', last7Entries.map(e => e.timestamp));
     
     if (last7Entries.length === 0) {
       return NextResponse.json({ 

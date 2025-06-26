@@ -24,9 +24,12 @@ export default function WeeklyReflectionPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
           },
           body: JSON.stringify({ userId: user.uid }),
         });
+        
+        console.log('Weekly reflection response status:', response.status);
 
         if (!response.ok) {
           const error = await response.json();
