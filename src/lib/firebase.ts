@@ -21,6 +21,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Connect to emulators in development (optional)
+// Uncomment the code below if you want to use Firebase emulators
+// Note: Requires Java installation and Firebase CLI authentication
+/*
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   // Only connect to emulators if they haven't been connected already
   try {
@@ -38,5 +41,6 @@ if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
     console.log('Firestore emulator connection skipped:', error);
   }
 }
+*/
 
 export { app, auth, db };
