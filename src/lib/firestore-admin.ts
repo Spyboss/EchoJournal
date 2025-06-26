@@ -54,3 +54,32 @@ export const getJournalEntriesAdmin = async (userId: string): Promise<JournalEnt
     throw e;
   }
 };
+
+/**
+ * Deletes a journal entry from Firestore using Admin SDK
+ * @param entryId - The entry's unique identifier
+ * @param userId - The user's unique identifier (for security)
+ * @returns Promise that resolves when the entry is deleted
+ */
+export const deleteJournalEntryAdmin = async (entryId: string, userId: string): Promise<void> => {
+  try {
+    // First verify the entry belongs to the user
+    const entryDoc = await adminDb.collection('entries').doc(entryId).get();
+    
+    if (!entryDoc.exists) {
+      throw new Error('Entry not found');
+    }
+    
+    const entryData = entryDoc.data();
+    if (entryData?.userId !== userId) {
+      throw new Error('Unauthorized: Entry does not belong to user');
+    }
+    
+    // Delete the entry
+    await adminDb.collection('entries').doc(entryId).delete();
+    console.log('Document deleted with ID: ', entryId);
+  } catch (e) {
+    console.error('Error deleting document: ', e);
+    throw e;
+  }
+};

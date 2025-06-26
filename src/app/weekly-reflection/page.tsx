@@ -3,51 +3,52 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { analyzeWeeklyReflection } from "@/ai/flows/analyze-weekly-reflection";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function WeeklyReflectionPage() {
+  const { user } = useAuth();
   const [reflectionSummary, setReflectionSummary] = useState<string | null>(null);
   const [writingPrompt, setWritingPrompt] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const loadWeeklyReflection = async () => {
+      if (!user) return;
+      
       setLoading(true);
-      // Load journal entries from local storage
-      const savedEntries = localStorage.getItem("journalEntries");
-      if (savedEntries) {
-        const journalEntries = JSON.parse(savedEntries)
-          .slice(0, 7) // Limit to last 7 entries
-          .map((entry: { text: any; }) => entry.text); // Extract text from entries
+      try {
+        const response = await fetch('/api/weekly-reflection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.uid }),
+        });
 
-        if (journalEntries.length > 0) {
-          try {
-            const reflection = await analyzeWeeklyReflection({ journalEntries: journalEntries.join('\n') });
-            setReflectionSummary(reflection.summary);
-            setWritingPrompt(reflection.prompt);
-          } catch (error) {
-            console.error("Weekly reflection analysis failed:", error);
-            toast({
-              title: "Weekly Reflection Failed",
-              description: "Could not generate reflection. Please try again later.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          toast({
-            title: "No Journal Entries",
-            description: "Write some journal entries this week and come back!",
-          });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to generate weekly reflection');
         }
+
+        const data = await response.json();
+        setReflectionSummary(data.reflection.summary);
+        setWritingPrompt(data.reflection.prompt);
+      } catch (error) {
+        console.error("Weekly reflection analysis failed:", error);
+        toast({
+          title: "Weekly Reflection Failed",
+          description: error instanceof Error ? error.message : "Could not generate reflection. Please try again later.",
+          variant: "destructive",
+        });
       }
       setLoading(false);
     };
 
     loadWeeklyReflection();
-  }, []);
+  }, [user]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2 bg-muted">

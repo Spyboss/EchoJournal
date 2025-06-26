@@ -185,8 +185,8 @@ export default function Home() {
     if (!user) return;
     
     try {
-      // In a real implementation, you'd need a delete API endpoint
-      // For now, we'll just remove from local state
+      await JournalService.deleteEntry(id);
+      // Remove from local state after successful deletion
       setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
       toast({
         title: "Success",

@@ -42,12 +42,41 @@ export class JournalService {
     const apiEntries: ApiJournalEntry[] = await response.json();
     
     // Transform API response to match frontend interface
-    return apiEntries.map(entry => ({
-      id: entry.id,
-      text: entry.entryText,
-      timestamp: entry.timestamp?.toDate ? entry.timestamp.toDate().toLocaleString() : new Date(entry.timestamp).toLocaleString(),
-      sentimentSummary: entry.sentimentSummary,
-    }));
+    return apiEntries.map(entry => {
+      let formattedTimestamp = 'Invalid Date';
+      
+      try {
+        if (entry.timestamp) {
+          // Handle Firestore Timestamp objects
+          if (entry.timestamp.toDate && typeof entry.timestamp.toDate === 'function') {
+            formattedTimestamp = entry.timestamp.toDate().toLocaleString();
+          }
+          // Handle timestamp objects with seconds and nanoseconds
+          else if (entry.timestamp._seconds || entry.timestamp.seconds) {
+            const seconds = entry.timestamp._seconds || entry.timestamp.seconds;
+            const date = new Date(seconds * 1000);
+            formattedTimestamp = date.toLocaleString();
+          }
+          // Handle regular date strings or numbers
+          else {
+            const date = new Date(entry.timestamp);
+            if (!isNaN(date.getTime())) {
+              formattedTimestamp = date.toLocaleString();
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error formatting timestamp:', error);
+        formattedTimestamp = 'Invalid Date';
+      }
+      
+      return {
+        id: entry.id,
+        text: entry.entryText,
+        timestamp: formattedTimestamp,
+        sentimentSummary: entry.sentimentSummary,
+      };
+    });
   }
 
   static async analyzeSentiment(entryText: string): Promise<{ sentiment: string; summary: string }> {
@@ -66,5 +95,16 @@ export class JournalService {
 
     const result = await response.json();
     return result.sentiment;
+  }
+
+  static async deleteEntry(entryId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/entries?id=${encodeURIComponent(entryId)}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete entry');
+    }
   }
 }

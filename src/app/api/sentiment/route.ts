@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { analyzeSentiment } from '@/ai/flows/analyze-sentiment'; // Assuming the flow can be imported
+import { analyzeSentiment } from '@/ai/flows/analyze-sentiment';
 
-export const dynamic = 'force-static';
-export const revalidate = false;
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
