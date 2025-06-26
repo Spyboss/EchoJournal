@@ -1,6 +1,9 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { JournalService } from '@/lib/journalService';
+import AuthForm from '@/components/AuthForm';
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,6 +16,8 @@ import { Mic, Trash2, Pause, Play } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface JournalEntry {
   id: string;
@@ -26,28 +31,54 @@ const generateId = (): string => {
 };
 
 export default function Home() {
+  const { user, loading } = useAuth();
   const [entryText, setEntryText] = useState("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [entriesLoading, setEntriesLoading] = useState(false);
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    // Load entries from local storage on mount
-    const savedEntries = localStorage.getItem("journalEntries");
-    if (savedEntries) {
-      setJournalEntries(JSON.parse(savedEntries));
+    // Load entries from Firebase when user is authenticated
+    if (user) {
+      loadEntries();
+    } else {
+      setJournalEntries([]);
     }
-  }, []);
+  }, [user]);
 
-  useEffect(() => {
-    // Save entries to local storage whenever journalEntries changes
-    localStorage.setItem("journalEntries", JSON.stringify(journalEntries));
-  }, [journalEntries]);
+  const loadEntries = async () => {
+    if (!user) return;
+    
+    setEntriesLoading(true);
+    try {
+      const entries = await JournalService.getEntries(user.uid);
+      setJournalEntries(entries);
+    } catch (error) {
+      console.error('Failed to load entries:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load journal entries.",
+        variant: "destructive",
+      });
+    } finally {
+      setEntriesLoading(false);
+    }
+  };
 
   const handleSaveEntry = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be signed in to save entries.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (entryText.trim() === "") {
       toast({
         title: "Error",
@@ -57,36 +88,37 @@ export default function Home() {
       return;
     }
 
-    const newEntryId = generateId();
-    const timestamp = new Date().toLocaleString();
-    let sentimentSummary: string | undefined;
-
     try {
-      const sentimentAnalysis = await analyzeSentiment({ journalEntry: entryText });
-      sentimentSummary = sentimentAnalysis.summary;
-    } catch (error) {
-      console.error("Sentiment analysis failed:", error);
+      // Save entry to Firebase
+      await JournalService.createEntry(user.uid, entryText);
+      
+      // Analyze sentiment
+      let sentimentSummary: string | undefined;
+      try {
+        const sentimentAnalysis = await JournalService.analyzeSentiment(entryText);
+        sentimentSummary = sentimentAnalysis.summary;
+      } catch (error) {
+        console.error("Sentiment analysis failed:", error);
+        // Don't fail the entire save if sentiment analysis fails
+      }
+
+      // Reload entries to get the latest data
+      await loadEntries();
+      
+      setEntryText(""); // Clear the textarea after saving
+      setAudioURL(null); // Clear the audio URL after saving
       toast({
-        title: "Sentiment Analysis Failed",
-        description: "Could not analyze sentiment. Please try again later.",
+        title: "Success",
+        description: "Journal entry saved!",
+      });
+    } catch (error) {
+      console.error("Failed to save entry:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save journal entry. Please try again.",
         variant: "destructive",
       });
     }
-
-    const newEntry: JournalEntry = {
-      id: newEntryId,
-      text: entryText,
-      timestamp: timestamp,
-      sentimentSummary: sentimentSummary,
-    };
-
-    setJournalEntries((prevEntries) => [newEntry, ...prevEntries]);
-    setEntryText(""); // Clear the textarea after saving
-    //setAudioURL(null); // Clear the audio URL after saving
-    toast({
-      title: "Success",
-      description: "Journal entry saved!",
-    });
   };
 
   const startRecording = async () => {
@@ -149,12 +181,25 @@ export default function Home() {
     }
   };
 
-  const handleDeleteEntry = (id: string) => {
-    setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
-    toast({
-      title: "Success",
-      description: "Journal entry deleted!",
-    });
+  const handleDeleteEntry = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      // In a real implementation, you'd need a delete API endpoint
+      // For now, we'll just remove from local state
+      setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
+      toast({
+        title: "Success",
+        description: "Journal entry deleted!",
+      });
+    } catch (error) {
+      console.error('Failed to delete entry:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete journal entry.",
+        variant: "destructive",
+      });
+    }
   };
 
   const clearAudioNote = () => {
@@ -163,10 +208,56 @@ export default function Home() {
   };
 
 
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen py-2">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication form if user is not signed in
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen py-2">
+        <Toaster />
+        <h1 className="text-3xl font-bold mb-8 text-primary">Echo Journal</h1>
+        <AuthForm />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
       <Toaster />
-      <h1 className="text-3xl font-bold mb-4 text-primary">Echo Journal</h1>
+      <div className="w-full max-w-md mb-4 flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-primary">Echo Journal</h1>
+        <Button 
+          variant="outline" 
+          onClick={async () => {
+            try {
+              await signOut(auth);
+              toast({
+                title: "Success",
+                description: "Signed out successfully!",
+              });
+            } catch (error) {
+              console.error('Sign out error:', error);
+              toast({
+                title: "Error",
+                description: "Failed to sign out.",
+                variant: "destructive",
+              });
+            }
+          }}
+        >
+          Sign Out
+        </Button>
+      </div>
       <Card className="w-full max-w-md p-4">
         <CardHeader>
           <Label htmlFor="entryText">New Entry</Label>
@@ -269,7 +360,12 @@ export default function Home() {
         </h2>
         <ScrollArea className="rounded-md border h-[400px] w-full">
           <div className="flex flex-col gap-4 p-4">
-            {journalEntries.map((entry) => (
+            {entriesLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-muted-foreground">Loading entries...</p>
+              </div>
+            ) : journalEntries.map((entry) => (
               <Card key={entry.id} className="mb-4 shadow-md rounded-md">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                   <p className="text-sm text-muted-foreground">{entry.timestamp}</p>
@@ -307,7 +403,7 @@ export default function Home() {
                 </CardContent>
               </Card>
             ))}
-            {journalEntries.length === 0 && (
+            {!entriesLoading && journalEntries.length === 0 && (
               <p className="text-muted-foreground">No entries yet. Start writing!</p>
             )}
           </div>

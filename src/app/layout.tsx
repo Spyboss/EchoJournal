@@ -5,6 +5,7 @@ import './globals.css';
 import Link from 'next/link';
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from '@/components/theme-toggle';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -54,7 +55,9 @@ export default function RootLayout({
             </a>
           </div>
         </nav>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,3 +1,4 @@
+import { describe, beforeEach, it, expect, jest } from '@jest/globals';
 import { POST } from './route';
 import { analyzeSentiment } from '@/ai/flows/analyze-sentiment'; // Assuming this path
 
@@ -6,10 +7,13 @@ jest.mock('@/ai/flows/analyze-sentiment', () => ({
   analyzeSentiment: jest.fn(),
 }));
 
+const mockedAnalyzeSentiment = analyzeSentiment as jest.MockedFunction<typeof analyzeSentiment>;
+
 describe('/api/sentiment POST', () => {
   // Clear mocks before each test
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedAnalyzeSentiment.mockClear();
   });
 
   it('should return 400 if entryText is missing', async () => {
@@ -21,8 +25,8 @@ describe('/api/sentiment POST', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.message).toBe('Missing entryText');
-    expect(analyzeSentiment).not.toHaveBeenCalled();
+    expect(data.message).toBe('Invalid or missing entryText');
+    expect(mockedAnalyzeSentiment).not.toHaveBeenCalled();
   });
 
   it('should call analyzeSentiment and return the result', async () => {
@@ -34,7 +38,7 @@ describe('/api/sentiment POST', () => {
     };
 
     // Mock the analyzeSentiment function to return a resolved promise with the mock result
-    (analyzeSentiment as jest.Mock).mockResolvedValue(mockSentimentResult);
+    mockedAnalyzeSentiment.mockResolvedValue(mockSentimentResult);
 
     const mockRequest = {
       json: async () => ({ entryText: mockEntryText }),
@@ -44,8 +48,8 @@ describe('/api/sentiment POST', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(analyzeSentiment).toHaveBeenCalledWith(mockEntryText);
-    expect(data).toEqual(mockSentimentResult);
+    expect(mockedAnalyzeSentiment).toHaveBeenCalledWith({ journalEntry: mockEntryText });
+    expect(data).toEqual({ sentiment: mockSentimentResult });
   });
 
   it('should return 500 if analyzeSentiment throws an error', async () => {
@@ -53,7 +57,7 @@ describe('/api/sentiment POST', () => {
     const mockError = new Error('Genkit flow error');
 
     // Mock the analyzeSentiment function to throw an error
-    (analyzeSentiment as jest.Mock).mockRejectedValue(mockError);
+    mockedAnalyzeSentiment.mockRejectedValue(mockError);
 
     const mockRequest = {
       json: async () => ({ entryText: mockEntryText }),
@@ -67,7 +71,7 @@ describe('/api/sentiment POST', () => {
 
     expect(response.status).toBe(500);
     expect(data.message).toBe('Error analyzing sentiment');
-    expect(analyzeSentiment).toHaveBeenCalledWith(mockEntryText);
+    expect(mockedAnalyzeSentiment).toHaveBeenCalledWith({ journalEntry: mockEntryText });
     // Check if the error was logged (optional)
     // expect(consoleErrorSpy).toHaveBeenCalledWith('Error analyzing sentiment:', mockError);
 

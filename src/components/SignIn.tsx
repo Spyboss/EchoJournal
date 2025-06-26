@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Assuming '@/lib/firebase' is the correct path to your firebase.ts file
+import { auth } from '@/lib/firebase';
 
 const SignIn = () => {
   const [email, setEmail] = useState('');

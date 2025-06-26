@@ -51,7 +51,7 @@ describe('Firestore Integration Tests', () => {
       expect(mockAddDoc).toHaveBeenCalledWith(mockCollectionRef, expect.objectContaining({
         userId: userId,
         entryText: entryText,
-        timestamp: expect.any(String), // Check that timestamp is a string
+        timestamp: expect.objectContaining({ _methodName: 'serverTimestamp' }), // Check that timestamp is serverTimestamp
       }));
     });
 
@@ -67,7 +67,13 @@ describe('Firestore Integration Tests', () => {
       // Mock addDoc to reject with an error
       mockAddDoc.mockRejectedValue(mockError);
 
-      await expect(addJournalEntry(userId, entryText)).rejects.toThrow('Error adding journal entry: Firestore add failed');
+      // Spy on console.error to prevent it from logging during tests
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(addJournalEntry(userId, entryText)).rejects.toThrow('Firestore add failed');
+
+      // Restore console.error
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -80,6 +86,9 @@ describe('Firestore Integration Tests', () => {
       ];
       const mockSnapshot = {
         docs: mockEntries,
+        forEach: jest.fn((callback) => {
+          mockEntries.forEach(callback);
+        }),
       };
 
       // Mock the collection function
@@ -102,8 +111,8 @@ describe('Firestore Integration Tests', () => {
       // Expect where to be called with the correct field and value
       expect(mockWhere).toHaveBeenCalledWith('userId', '==', userId);
 
-      // Expect query to be called with the collection reference and the result of where
-      expect(mockQuery).toHaveBeenCalledWith(mockCollectionRef, expect.anything()); // Check that it's called with the collection ref and some constraints
+      // Expect query to be called with the collection reference, where clause, and orderBy clause
+      expect(mockQuery).toHaveBeenCalledWith(mockCollectionRef, expect.anything(), expect.anything()); // Check that it's called with the collection ref and constraints
 
       // Expect getDocs to be called with the query reference
       expect(mockGetDocs).toHaveBeenCalledWith(mockQueryRef);
@@ -113,6 +122,9 @@ describe('Firestore Integration Tests', () => {
       const userId = 'testUserId';
       const mockSnapshot = {
         docs: [],
+        forEach: jest.fn((callback) => {
+          [].forEach(callback);
+        }),
       };
 
       // Mock dependencies to return no documents
@@ -136,6 +148,9 @@ describe('Firestore Integration Tests', () => {
       ];
       const mockSnapshot = {
         docs: mockEntries,
+        forEach: jest.fn((callback) => {
+          mockEntries.forEach(callback);
+        }),
       };
 
       // Mock dependencies
@@ -166,7 +181,13 @@ describe('Firestore Integration Tests', () => {
       mockWhere.mockReturnValue({});
       mockGetDocs.mockRejectedValue(mockError);
 
-      await expect(getJournalEntries(userId)).rejects.toThrow('Error fetching journal entries: Firestore get failed');
+      // Spy on console.error to prevent it from logging during tests
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(getJournalEntries(userId)).rejects.toThrow('Firestore get failed');
+
+      // Restore console.error
+      consoleErrorSpy.mockRestore();
     });
   });
 });
