@@ -12,7 +12,7 @@ import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, Trash2, Pause, Play } from "lucide-react";
+import { Mic, Trash2, Pause, Play, Heart, MessageCircle, Calendar, TrendingUp, Search, Filter } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -26,10 +26,6 @@ interface JournalEntry {
   sentimentSummary?: string;
 }
 
-const generateId = (): string => {
-  return Math.random().toString(36).substring(2, 15);
-};
-
 export default function Home() {
   const { user, loading } = useAuth();
   const [entryText, setEntryText] = useState("");
@@ -39,7 +35,77 @@ export default function Home() {
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [entriesLoading, setEntriesLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sentimentFilter, setSentimentFilter] = useState('all');
+  const [likedEntries, setLikedEntries] = useState<Set<string>>(new Set());
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Helper function to detect sentiment from summary
+  const getSentimentType = (sentimentSummary?: string): string => {
+    if (!sentimentSummary) return 'neutral';
+    const summary = sentimentSummary.toLowerCase();
+    if (summary.includes('positive') || summary.includes('happy') || summary.includes('joy')) return 'positive';
+    if (summary.includes('negative') || summary.includes('sad') || summary.includes('angry')) return 'negative';
+    return 'neutral';
+  };
+
+  // Helper function to get sentiment emoji
+  const getSentimentEmoji = (sentimentType: string): string => {
+    switch (sentimentType) {
+      case 'positive': return '😊';
+      case 'negative': return '😔';
+      default: return '😐';
+    }
+  };
+
+  // Helper function to get sentiment color
+  const getSentimentColor = (sentimentType: string): string => {
+    switch (sentimentType) {
+      case 'positive': return 'text-green-600 dark:text-green-400';
+      case 'negative': return 'text-red-600 dark:text-red-400';
+      default: return 'text-gray-600 dark:text-gray-400';
+    }
+  };
+
+  // Filter entries based on search and sentiment
+  const filteredEntries = journalEntries.filter(entry => {
+    const matchesSearch = entry.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (entry.sentimentSummary?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesSentiment = sentimentFilter === 'all' || getSentimentType(entry.sentimentSummary) === sentimentFilter;
+    return matchesSearch && matchesSentiment;
+  });
+
+  // Toggle like for an entry
+  const toggleLike = (entryId: string) => {
+    setLikedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle expand for an entry
+  const toggleExpand = (entryId: string) => {
+    setExpandedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  // Truncate text for preview
+  const truncateText = (text: string, maxLength: number = 150): string => {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
 
   useEffect(() => {
     // Load entries from Firebase when user is authenticated
@@ -345,56 +411,158 @@ export default function Home() {
       </Card>
 
       <div className="w-full max-w-md mt-6">
-        <h2 className="text-2xl font-semibold mb-3 text-primary">
-          Recent Entries
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-semibold text-primary flex items-center gap-2">
+            <Calendar className="h-6 w-6" />
+            Recent Entries
+          </h2>
+          <div className="text-sm text-muted-foreground">
+            {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+          </div>
+        </div>
+        
+        {/* Search and Filter Controls */}
+        <div className="space-y-3 mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search entries..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <select
+              value={sentimentFilter}
+              onChange={(e) => setSentimentFilter(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="all">All Moods</option>
+              <option value="positive">😊 Positive</option>
+              <option value="neutral">😐 Neutral</option>
+              <option value="negative">😔 Negative</option>
+            </select>
+          </div>
+        </div>
+
         <ScrollArea className="rounded-md border h-[400px] w-full">
-          <div className="flex flex-col gap-4 p-4">
+          <div className="flex flex-col gap-3 p-4">
             {entriesLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
                 <p className="text-muted-foreground">Loading entries...</p>
               </div>
-            ) : journalEntries.map((entry) => (
-              <Card key={entry.id} className="mb-4 shadow-md rounded-md">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                  <p className="text-sm text-muted-foreground">{entry.timestamp}</p>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your entry from our servers.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteEntry(entry.id)}>Continue</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-800">{entry.text}</p>
-                  {entry.sentimentSummary && (
-                    <div className="mt-2">
-                      <Label className="text-sm text-muted-foreground">
-                        Sentiment Summary:
-                      </Label>
-                      <p className="text-gray-700">{entry.sentimentSummary}</p>
+            ) : filteredEntries.map((entry) => {
+              const sentimentType = getSentimentType(entry.sentimentSummary);
+              const isExpanded = expandedEntries.has(entry.id);
+              const isLiked = likedEntries.has(entry.id);
+              const shouldTruncate = entry.text.length > 150;
+              
+              return (
+                <Card key={entry.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20 hover:border-l-primary/60">
+                  <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-lg">{getSentimentEmoji(sentimentType)}</span>
+                        <p className="text-sm text-muted-foreground">{entry.timestamp}</p>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleLike(entry.id)}
+                        className={`h-8 w-8 p-0 transition-colors ${
+                          isLiked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                        <span className="sr-only">Like</span>
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete your entry from our servers.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteEntry(entry.id)}>Continue</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-foreground leading-relaxed">
+                          {isExpanded || !shouldTruncate ? entry.text : truncateText(entry.text)}
+                        </p>
+                        {shouldTruncate && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => toggleExpand(entry.id)}
+                            className="p-0 h-auto text-primary hover:text-primary/80 mt-1"
+                          >
+                            {isExpanded ? 'Show less' : 'Read more'}
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {entry.sentimentSummary && (
+                        <div className="bg-muted/50 rounded-lg p-3 border-l-2 border-l-primary/30">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                            <Label className="text-sm font-medium text-foreground">
+                              Mood Insight
+                            </Label>
+                          </div>
+                          <p className={`text-sm ${getSentimentColor(sentimentType)} font-medium`}>
+                            {entry.sentimentSummary}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            
+            {!entriesLoading && filteredEntries.length === 0 && journalEntries.length > 0 && (
+              <div className="text-center py-8">
+                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">No entries match your search.</p>
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSentimentFilter('all');
+                  }}
+                  className="mt-2"
+                >
+                  Clear filters
+                </Button>
+              </div>
+            )}
+            
             {!entriesLoading && journalEntries.length === 0 && (
-              <p className="text-muted-foreground">No entries yet. Start writing!</p>
+              <div className="text-center py-8">
+                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">No entries yet. Start writing!</p>
+              </div>
             )}
           </div>
         </ScrollArea>
