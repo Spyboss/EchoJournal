@@ -12,12 +12,15 @@ import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, Trash2, Pause, Play, Heart, MessageCircle, Calendar, TrendingUp, Search, Filter } from "lucide-react";
+import { Mic, Trash2, Pause, Play, Heart, MessageCircle, Calendar, Search, Filter } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import SearchAndFilter from '@/components/SearchAndFilter';
+import JournalEntryCard from '@/components/JournalEntryCard';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { useAccessibility, useSkipNavigation } from '@/hooks/useAccessibility';
 
 interface JournalEntry {
   id: string;
@@ -39,6 +42,10 @@ export default function Home() {
   const [sentimentFilter, setSentimentFilter] = useState('all');
   const [likedEntries, setLikedEntries] = useState<Set<string>>(new Set());
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  
+  // Accessibility hooks
+  const { announce, AnnouncementRegion } = useAccessibility();
+  const { SkipLink } = useSkipNavigation();
   const audioChunksRef = useRef<Blob[]>([]);
 
   // Helper function to detect sentiment from summary
@@ -163,12 +170,14 @@ export default function Home() {
       
       setEntryText(""); // Clear the textarea after saving
       setAudioURL(null); // Clear the audio URL after saving
+      announce('Journal entry saved successfully');
       toast({
         title: "Success",
         description: "Journal entry saved!",
       });
     } catch (error) {
       console.error("Failed to save entry:", error);
+      announce('Failed to save journal entry');
       toast({
         title: "Error",
         description: "Failed to save journal entry. Please try again.",
@@ -186,6 +195,7 @@ export default function Home() {
       recorder.start();
       setIsRecording(true);
       setIsPaused(false);
+      announce('Voice recording started');
 
       recorder.ondataavailable = (event) => {
         audioChunksRef.current.push(event.data);
@@ -197,6 +207,7 @@ export default function Home() {
         setAudioURL(url);
         setIsRecording(false);
         setIsPaused(false);
+        announce('Voice recording completed');
 
         // Convert audio to text using a mock transcription
         // In a real implementation, you would send the audioBlob to a transcription service
@@ -205,6 +216,7 @@ export default function Home() {
       };
     } catch (error) {
       console.error("Error starting recording:", error);
+      announce('Failed to start voice recording');
       toast({
         title: "Recording Failed",
         description: "Failed to start recording. Please check your microphone permissions.",
@@ -244,12 +256,14 @@ export default function Home() {
       await JournalService.deleteEntry(id, user.uid);
       // Remove from local state after successful deletion
       setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
+      announce('Journal entry deleted');
       toast({
         title: "Success",
         description: "Journal entry deleted!",
       });
     } catch (error) {
       console.error('Failed to delete entry:', error);
+      announce('Failed to delete journal entry');
       toast({
         title: "Error",
         description: "Failed to delete journal entry.",
@@ -288,285 +302,274 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <SkipLink />
+      <AnnouncementRegion />
       <Toaster />
-      <div className="w-full max-w-md mb-4 flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary">Echo Journal</h1>
-        <Button 
-          variant="outline" 
-          onClick={async () => {
-            try {
-              await signOut(auth);
-              toast({
-                title: "Success",
-                description: "Signed out successfully!",
-              });
-            } catch (error) {
-              console.error('Sign out error:', error);
-              toast({
-                title: "Error",
-                description: "Failed to sign out.",
-                variant: "destructive",
-              });
-            }
-          }}
-        >
-          Sign Out
-        </Button>
-      </div>
-      <Card className="w-full max-w-md p-4">
-        <CardHeader>
-          <Label htmlFor="entryText">New Entry</Label>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            id="entryText"
-            placeholder="Write about your day..."
-            value={entryText}
-            onChange={(e) => setEntryText(e.target.value)}
-            className="mb-2"
-          />
-          {audioURL ? (
-            <div className="mb-2">
-              <audio src={audioURL} controls className="w-full"></audio>
-            </div>
-          ) : null}
-          <div className="flex justify-between">
-            {!isRecording && !isPaused && (
-              <Button
-                onClick={startRecording}
-                className="bg-secondary text-secondary-foreground w-1/2 mr-1"
-                disabled={isRecording}
-              >
-                <Mic className="mr-2 h-4 w-4" />
-                Record Voice Note
-              </Button>
-            )}
-            {isRecording && !isPaused && (
-              <Button
-                onClick={pauseRecording}
-                className="bg-secondary text-secondary-foreground w-1/2 mr-1"
-              >
-                <Pause className="mr-2 h-4 w-4" />
-                Pause Recording
-              </Button>
-            )}
-            {isRecording && isPaused && (
-              <Button
-                onClick={resumeRecording}
-                className="bg-secondary text-secondary-foreground w-1/2 mr-1"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Resume Recording
-              </Button>
-            )}
-            {isRecording && (
-              <Button
-                onClick={stopRecording}
-                className="bg-secondary text-secondary-foreground w-1/2 ml-1"
-              >
-                Stop Recording
-              </Button>
-            )}
-            {!isRecording && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-secondary text-secondary-foreground w-1/2 ml-1" disabled={!audioURL}>
-                    Review Note
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Voice Note Preview</DialogTitle>
-                    <DialogDescription>
-                      Review your voice note before saving.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {audioURL && (
-                    <audio src={audioURL} controls className="w-full"></audio>
-                  )}
-                  <DialogFooter>
-                    <Button type="button" onClick={clearAudioNote}>
-                      Clear
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )}
-             {audioURL && !isRecording && !isPaused &&(
-              <Button
-                onClick={clearAudioNote}
-                className="bg-secondary text-secondary-foreground w-1/2 ml-1"
-              >
-                Clear Note
-              </Button>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <Button onClick={handleSaveEntry} className="bg-accent text-accent-foreground">
-            Save Entry
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <div className="w-full max-w-md mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold text-primary flex items-center gap-2">
-            <Calendar className="h-6 w-6" />
-            Recent Entries
-          </h2>
-          <div className="text-sm text-muted-foreground">
-            {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
-          </div>
-        </div>
-        
-        {/* Search and Filter Controls */}
-        <div className="space-y-3 mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search entries..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <select
-              value={sentimentFilter}
-              onChange={(e) => setSentimentFilter(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="all">All Moods</option>
-              <option value="positive">😊 Positive</option>
-              <option value="neutral">😐 Neutral</option>
-              <option value="negative">😔 Negative</option>
-            </select>
-          </div>
-        </div>
-
-        <ScrollArea className="rounded-md border h-[400px] w-full">
-          <div className="flex flex-col gap-3 p-4">
-            {entriesLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-muted-foreground">Loading entries...</p>
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <MessageCircle className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-primary">Echo Journal</h1>
               </div>
-            ) : filteredEntries.map((entry) => {
-              const sentimentType = getSentimentType(entry.sentimentSummary);
-              const isExpanded = expandedEntries.has(entry.id);
-              const isLiked = likedEntries.has(entry.id);
-              const shouldTruncate = entry.text.length > 150;
-              
-              return (
-                <Card key={entry.id} className="group hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20 hover:border-l-primary/60">
-                  <CardHeader className="flex flex-row items-start justify-between pb-3 space-y-0">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-lg">{getSentimentEmoji(sentimentType)}</span>
-                        <p className="text-sm text-muted-foreground">{entry.timestamp}</p>
-                      </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={async () => {
+                try {
+                  await signOut(auth);
+                  toast({
+                    title: "Success",
+                    description: "Signed out successfully!",
+                  });
+                } catch (error) {
+                  console.error('Sign out error:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to sign out.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              Sign Out
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main id="main-content" className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8" role="main">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* New Entry Section */}
+            <div className="lg:col-span-1">
+              <Card className="h-fit shadow-lg border-0 bg-card/50 backdrop-blur">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center">
+                      <MessageCircle className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleLike(entry.id)}
-                        className={`h-8 w-8 p-0 transition-colors ${
-                          isLiked ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'
-                        }`}
-                      >
-                        <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-                        <span className="sr-only">Like</span>
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete your entry from our servers.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteEntry(entry.id)}>Continue</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                    <Label htmlFor="entryText" className="text-lg font-semibold text-foreground">
+                      New Entry
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Share your thoughts and feelings
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Textarea
+                    id="entryText"
+                    placeholder="What's on your mind today? Share your thoughts, feelings, or experiences..."
+                    value={entryText}
+                    onChange={(e) => setEntryText(e.target.value)}
+                    className="min-h-[120px] resize-none border-0 bg-background/50 focus:bg-background transition-colors"
+                    aria-label="Journal entry text"
+                  />
+                  {audioURL && (
+                    <div className="p-3 bg-muted/50 rounded-lg border">
+                      <Label className="text-sm font-medium mb-2 block">Voice Note</Label>
+                      <audio src={audioURL} controls className="w-full" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-foreground leading-relaxed">
-                          {isExpanded || !shouldTruncate ? entry.text : truncateText(entry.text)}
-                        </p>
-                        {shouldTruncate && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            onClick={() => toggleExpand(entry.id)}
-                            className="p-0 h-auto text-primary hover:text-primary/80 mt-1"
-                          >
-                            {isExpanded ? 'Show less' : 'Read more'}
-                          </Button>
-                        )}
-                      </div>
-                      
-                      {entry.sentimentSummary && (
-                        <div className="bg-muted/50 rounded-lg p-3 border-l-2 border-l-primary/30">
-                          <div className="flex items-center gap-2 mb-1">
-                            <TrendingUp className="h-4 w-4 text-primary" />
-                            <Label className="text-sm font-medium text-foreground">
-                              Mood Insight
-                            </Label>
-                          </div>
-                          <p className={`text-sm ${getSentimentColor(sentimentType)} font-medium`}>
-                            {entry.sentimentSummary}
-                          </p>
+                  )}
+                  {/* Voice Recording Controls */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-foreground">Voice Note</Label>
+                      {isRecording && (
+                        <div className="flex items-center space-x-2 text-sm text-red-600 dark:text-red-400">
+                          <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                          <span>Recording...</span>
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-            
-            {!entriesLoading && filteredEntries.length === 0 && journalEntries.length > 0 && (
-              <div className="text-center py-8">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No entries match your search.</p>
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSentimentFilter('all');
-                  }}
-                  className="mt-2"
-                >
-                  Clear filters
-                </Button>
-              </div>
-            )}
-            
-            {!entriesLoading && journalEntries.length === 0 && (
-              <div className="text-center py-8">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No entries yet. Start writing!</p>
-              </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      {!isRecording && !isPaused && (
+                        <Button
+                          onClick={startRecording}
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          disabled={isRecording}
+                          aria-label="Start voice recording"
+                        >
+                          <Mic className="mr-2 h-4 w-4" />
+                          Record
+                        </Button>
+                      )}
+                      
+                      {isRecording && !isPaused && (
+                        <Button
+                          onClick={pauseRecording}
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          aria-label="Pause recording"
+                        >
+                          <Pause className="mr-2 h-4 w-4" />
+                          Pause
+                        </Button>
+                      )}
+                      
+                      {isRecording && isPaused && (
+                        <Button
+                          onClick={resumeRecording}
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          aria-label="Resume recording"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Resume
+                        </Button>
+                      )}
+                      
+                      {isRecording && (
+                        <Button
+                          onClick={stopRecording}
+                          variant="destructive"
+                          size="sm"
+                          className="h-10"
+                          aria-label="Stop recording"
+                        >
+                          Stop
+                        </Button>
+                      )}
+                      
+                      {audioURL && !isRecording && (
+                        <Button
+                          onClick={clearAudioNote}
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          aria-label="Clear voice note"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="pt-4">
+                  <Button 
+                    onClick={handleSaveEntry} 
+                    className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                    disabled={!entryText.trim() && !audioURL}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Save Entry
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+
+            {/* Journal Entries Section */}
+            <div className="lg:col-span-2">
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                      <Calendar className="h-6 w-6 text-primary" />
+                      Recent Entries
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+                      {(searchTerm || sentimentFilter !== 'all') && ' found'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Search and Filter Controls */}
+                <SearchAndFilter
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  sentimentFilter={sentimentFilter}
+                  setSentimentFilter={setSentimentFilter}
+                  filteredCount={filteredEntries.length}
+                  totalEntries={journalEntries.length}
+                />
+
+                {/* Journal Entries List */}
+                <div className="space-y-4">
+                  {entriesLoading ? (
+                    <Card className="p-8 text-center bg-muted/30 border-0">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground font-medium">Loading your entries...</p>
+                    </Card>
+                  ) : filteredEntries.length > 0 ? (
+                    <div className="space-y-4">
+                      {filteredEntries.map((entry) => (
+                        <JournalEntryCard
+                          key={entry.id}
+                          entry={entry}
+                          isLiked={likedEntries.has(entry.id)}
+                          isExpanded={expandedEntries.has(entry.id)}
+                          onToggleLike={toggleLike}
+                          onToggleExpand={toggleExpand}
+                          onDelete={handleDeleteEntry}
+                          getSentimentType={getSentimentType}
+                          getSentimentEmoji={getSentimentEmoji}
+                          getSentimentColor={getSentimentColor}
+                          truncateText={truncateText}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="border-dashed border-2 border-muted-foreground/20">
+                              <CardContent className="py-16">
+                          <div className="flex flex-col items-center justify-center space-y-6 text-center">
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center">
+                        <MessageCircle className="h-10 w-10 text-primary" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-primary font-bold">✨</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3 max-w-md">
+                      <h3 className="text-xl font-semibold text-foreground">
+                        {searchTerm || sentimentFilter !== 'all' ? 'No matching entries found' : 'Your journal awaits'}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {searchTerm || sentimentFilter !== 'all' 
+                          ? 'Try adjusting your search terms or filter criteria to find what you\'re looking for.' 
+                          : 'Begin your mindful journaling journey. Share your thoughts, feelings, and experiences above.'}
+                      </p>
+                      
+                      {(searchTerm || sentimentFilter !== 'all') && (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setSearchTerm('');
+                            setSentimentFilter('all');
+                          }}
+                          className="mt-4"
+                        >
+                          Clear all filters
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
-        </ScrollArea>
-      </div>
+        </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
