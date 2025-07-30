@@ -18,8 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import SearchAndFilter from '@/components/SearchAndFilter';
 import JournalEntryCard from '@/components/JournalEntryCard';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useAccessibility, useSkipNavigation } from '@/hooks/useAccessibility';
 
 interface JournalEntry {
@@ -306,43 +304,7 @@ export default function Home() {
       <SkipLink />
       <AnnouncementRegion />
       <Toaster />
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <MessageCircle className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <h1 className="text-xl sm:text-2xl font-bold text-primary">Echo Journal</h1>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={async () => {
-                try {
-                  await signOut(auth);
-                  toast({
-                    title: "Success",
-                    description: "Signed out successfully!",
-                  });
-                } catch (error) {
-                  console.error('Sign out error:', error);
-                  toast({
-                    title: "Error",
-                    description: "Failed to sign out.",
-                    variant: "destructive",
-                  });
-                }
-              }}
-            >
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
+
 
       {/* Main Content */}
       <main id="main-content" className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8" role="main">
