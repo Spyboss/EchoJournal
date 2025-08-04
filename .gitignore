@@ -22,7 +22,12 @@
 
 # misc
 .DS_Store
-*.pem
+.thumbs.db
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
 
 # debug
 npm-debug.log*
@@ -39,10 +44,40 @@ next-env.d.ts
 
 .genkit/*
 
-# Firebase
-firebase-service-account.json
-firebase-debug.log
-firebase-debug.*.log
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.key
+*.pem
+*.p12
+*.pfx
+
+# API keys and secrets
+api-keys.json
+secrets.json
+config/secrets.js
+config/secrets.ts
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Cloudflare
+.wrangler/
+wrangler.toml.backup
+
+# Supabase
+.supabase/
+supabase/.env
+supabase/config.toml.backup
 
 # IDE configurations
 .vscode/
