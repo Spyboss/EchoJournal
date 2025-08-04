@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   },
   // Cloudflare Pages compatibility
   output: 'export',
-  distDir: '.vercel/output/static',
+  distDir: 'out',
   // Disable server-side features for static export
   // experimental: {
   //   esmExternals: 'loose'
