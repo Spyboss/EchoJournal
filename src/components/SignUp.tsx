@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const { signUp } = useAuth();
+
   const handleSignUp = async () => {
     setError(null); // Clear previous errors
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // Handle successful sign-up (e.g., redirect to dashboard)
-      console.log('User signed up successfully!');
+      const { user, error } = await signUp(email, password);
+      if (error) {
+        setError(error.message);
+        console.error('Error signing up:', error);
+      } else {
+        // Handle successful sign-up (e.g., redirect to dashboard)
+        console.log('User signed up successfully!');
+      }
     } catch (error: any) {
       setError(error.message);
       console.error('Error signing up:', error);

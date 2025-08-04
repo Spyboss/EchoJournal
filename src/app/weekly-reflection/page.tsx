@@ -33,25 +33,16 @@ export default function WeeklyReflectionPage() {
     }
     
     try {
-      const response = await fetch('/api/weekly-reflection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-        body: JSON.stringify({ userId: user.uid }),
-      });
+      // Temporary placeholder data since AI functionality is disabled for static export
+      const placeholderData = {
+        reflection: {
+          summary: "Weekly reflection functionality is temporarily disabled during migration to Cloudflare Pages. This feature will be restored with external AI service integration.",
+          prompt: "Take a moment to reflect on your week. What moments brought you joy? What challenges did you overcome?"
+        }
+      };
       
-      console.log('Weekly reflection response status:', response.status);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to generate weekly reflection');
-      }
-
-      const data = await response.json();
-      setReflectionSummary(data.reflection.summary);
-      setWritingPrompt(data.reflection.prompt);
+      setReflectionSummary(placeholderData.reflection.summary);
+      setWritingPrompt(placeholderData.reflection.prompt);
       
       // Simulate additional data processing for enhanced UI
       setWeekProgress(Math.floor(Math.random() * 40) + 60); // 60-100%

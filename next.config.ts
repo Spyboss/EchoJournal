@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Cloudflare Pages compatibility
+  output: 'export',
+  distDir: 'out',
+  // Disable server-side features for static export
+  // experimental: {
+  //   esmExternals: 'loose'
+  // }
 };
 
 export default nextConfig;

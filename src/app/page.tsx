@@ -8,7 +8,7 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { analyzeSentiment } from "@/ai/flows/analyze-sentiment";
+// Sentiment analysis temporarily disabled for static export
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -126,7 +126,7 @@ export default function Home() {
     
     setEntriesLoading(true);
     try {
-      const entries = await JournalService.getEntries(user.uid);
+      const entries = await JournalService.getEntries(user.id);
       setJournalEntries(entries);
     } catch (error) {
       console.error('Failed to load entries:', error);
@@ -161,7 +161,7 @@ export default function Home() {
 
     try {
       // Save entry to Firebase (sentiment analysis is now included during creation)
-      await JournalService.createEntry(user.uid, entryText);
+      await JournalService.createEntry(user.id, entryText);
 
       // Reload entries to get the latest data
       await loadEntries();
@@ -251,7 +251,7 @@ export default function Home() {
     if (!user) return;
     
     try {
-      await JournalService.deleteEntry(id, user.uid);
+      await JournalService.deleteEntry(id, user.id);
       // Remove from local state after successful deletion
       setJournalEntries((prevEntries) => prevEntries.filter((entry) => entry.id !== id));
       announce('Journal entry deleted');

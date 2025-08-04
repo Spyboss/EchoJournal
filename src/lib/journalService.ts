@@ -1,3 +1,5 @@
+import { journalOperations, JournalEntry as SupabaseJournalEntry } from './supabase';
+
 interface JournalEntry {
   id: string;
   text: string;
@@ -5,108 +7,102 @@ interface JournalEntry {
   sentimentSummary?: string;
 }
 
-interface ApiJournalEntry {
-  id: string;
-  userId: string;
-  entryText: string;
-  timestamp: any;
-  sentimentSummary?: string;
-}
-
 export class JournalService {
-  private static baseUrl = '/api';
-
   static async createEntry(userId: string, entryText: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/entries`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId, entryText }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create entry');
+    try {
+      // For now, we'll create entries without sentiment analysis
+      // You can add sentiment analysis later via a separate API call
+      await journalOperations.addEntry({
+        user_id: userId,
+        content: entryText,
+        title: entryText.substring(0, 50) + (entryText.length > 50 ? '...' : ''), // Auto-generate title
+      });
+    } catch (error) {
+      console.error('Error creating entry:', error);
+      throw new Error('Failed to create entry');
     }
   }
 
   static async getEntries(userId: string): Promise<JournalEntry[]> {
-    const response = await fetch(`${this.baseUrl}/entries?userId=${encodeURIComponent(userId)}`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch entries');
-    }
-
-    const apiEntries: ApiJournalEntry[] = await response.json();
-    
-    // Transform API response to match frontend interface
-    return apiEntries.map(entry => {
-      let formattedTimestamp = 'Invalid Date';
+    try {
+      const entries = await journalOperations.getEntries(userId);
       
-      try {
-        if (entry.timestamp) {
-          // Handle Firestore Timestamp objects
-          if (entry.timestamp.toDate && typeof entry.timestamp.toDate === 'function') {
-            formattedTimestamp = entry.timestamp.toDate().toLocaleString();
-          }
-          // Handle timestamp objects with seconds and nanoseconds
-          else if (entry.timestamp._seconds || entry.timestamp.seconds) {
-            const seconds = entry.timestamp._seconds || entry.timestamp.seconds;
-            const date = new Date(seconds * 1000);
-            formattedTimestamp = date.toLocaleString();
-          }
-          // Handle regular date strings or numbers
-          else {
-            const date = new Date(entry.timestamp);
+      // Transform Supabase entries to match frontend interface
+      return entries.map(entry => {
+        let formattedTimestamp = 'Invalid Date';
+        
+        try {
+          if (entry.created_at) {
+            const date = new Date(entry.created_at);
             if (!isNaN(date.getTime())) {
               formattedTimestamp = date.toLocaleString();
             }
           }
+        } catch (error) {
+          console.error('Error formatting timestamp:', error);
+          formattedTimestamp = 'Invalid Date';
         }
-      } catch (error) {
-        console.error('Error formatting timestamp:', error);
-        formattedTimestamp = 'Invalid Date';
-      }
-      
-      return {
-        id: entry.id,
-        text: entry.entryText,
-        timestamp: formattedTimestamp,
-        sentimentSummary: entry.sentimentSummary,
-      };
-    });
+        
+        return {
+          id: entry.id,
+          text: entry.content,
+          timestamp: formattedTimestamp,
+          sentimentSummary: entry.sentiment_summary,
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching entries:', error);
+      throw new Error('Failed to fetch entries');
+    }
   }
 
   static async analyzeSentiment(entryText: string): Promise<{ sentiment: string; summary: string }> {
-    const response = await fetch(`${this.baseUrl}/sentiment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ entryText }),
-    });
+    // For static export, we'll need to call an external API or disable this feature
+    // This is a placeholder that you can implement with your preferred sentiment analysis service
+    try {
+      const response = await fetch('/api/sentiment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entryText }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to analyze sentiment');
+      if (!response.ok) {
+        throw new Error('Failed to analyze sentiment');
+      }
+
+      const result = await response.json();
+      return result.sentiment;
+    } catch (error) {
+      console.error('Error analyzing sentiment:', error);
+      // Return a default response if sentiment analysis fails
+      return {
+        sentiment: 'neutral',
+        summary: 'Sentiment analysis unavailable'
+      };
     }
-
-    const result = await response.json();
-    return result.sentiment;
   }
 
-  // Sentiment analysis is now included during entry creation
-
   static async deleteEntry(entryId: string, userId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/entries?id=${encodeURIComponent(entryId)}&userId=${encodeURIComponent(userId)}`, {
-      method: 'DELETE',
-    });
+    try {
+      await journalOperations.deleteEntry(entryId);
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      throw new Error('Failed to delete entry');
+    }
+  }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete entry');
+  static async updateEntry(entryId: string, updates: { content?: string; sentiment_summary?: string }): Promise<void> {
+    try {
+      await journalOperations.updateEntry(entryId, {
+        content: updates.content,
+        sentiment_summary: updates.sentiment_summary,
+        title: updates.content ? updates.content.substring(0, 50) + (updates.content.length > 50 ? '...' : '') : undefined
+      });
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      throw new Error('Failed to update entry');
     }
   }
 }

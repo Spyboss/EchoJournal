@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const { signIn } = useAuth();
+
   const handleSignIn = async () => {
     setError(null); // Clear previous errors
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Handle successful sign-in (e.g., redirect to dashboard)
-      console.log('User signed in successfully!');
+      const { user, error } = await signIn(email, password);
+      if (error) {
+        setError(error.message);
+        console.error('Error signing in:', error);
+      } else {
+        // Handle successful sign-in (e.g., redirect to dashboard)
+        console.log('User signed in successfully!');
+      }
     } catch (err: any) {
       // Handle errors
       setError(err.message);

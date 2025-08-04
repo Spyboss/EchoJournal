@@ -4,16 +4,15 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+
 import { toast } from '@/hooks/use-toast';
 
 export function Navigation() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOut();
       toast({
         title: "Success",
         description: "Signed out successfully!",
