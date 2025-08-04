@@ -1,6 +1,7 @@
 # 🌟 Echo Journal
 
 > A modern, AI-powered daily journaling application built with Next.js, Supabase, and Google AI
+<!-- Force rebuild with environment variables -->
 
 ![Echo Journal](https://img.shields.io/badge/Next.js-15.2.3-black?style=for-the-badge&logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-2.0-3ECF8E?style=for-the-badge&logo=supabase)
