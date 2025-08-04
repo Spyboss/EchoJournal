@@ -161,66 +161,79 @@ const AuthForm: React.FC = () => {
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             <TabsContent value="signin" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+              <form onSubmit={(e) => { e.preventDefault(); handleSignIn(); }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+                <Button 
+                  type="submit"
+                  className="w-full" 
                   disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-              <Button 
-                onClick={handleSignIn} 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? 'Signing In...' : 'Sign In'}
-              </Button>
+                >
+                  {loading ? 'Signing In...' : 'Sign In'}
+                </Button>
+              </form>
             </TabsContent>
             <TabsContent value="signup" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+              <form onSubmit={(e) => { e.preventDefault(); handleSignUp(); }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="Create a password (min 6 characters)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    autoComplete="new-password"
+                    minLength={6}
+                  />
+                </div>
+                <Button 
+                  type="submit"
+                  className="w-full" 
                   disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
-                <Input
-                  id="signup-password"
-                  type="password"
-                  placeholder="Create a password (min 6 characters)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-              <Button 
-                onClick={handleSignUp} 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? 'Creating Account...' : 'Sign Up'}
-              </Button>
+                >
+                  {loading ? 'Creating Account...' : 'Sign Up'}
+                </Button>
+              </form>
             </TabsContent>
           </Tabs>
         </CardContent>

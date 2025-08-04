@@ -184,19 +184,42 @@ export default function Home() {
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = async (event?: React.MouseEvent) => {
+    // Prevent event bubbling and default behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Prevent multiple simultaneous recording attempts
+    if (isRecording || !navigator.mediaDevices) {
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
-      audioChunksRef.current = []; // Initialize the array to collect audio chunks
-      recorder.start();
+      // Set recording state immediately to prevent double-clicks
       setIsRecording(true);
       setIsPaused(false);
-      announce('Voice recording started');
-
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      const recorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/wav'
+      });
+      
+      setMediaRecorder(recorder);
+      audioChunksRef.current = []; // Initialize the array to collect audio chunks
+      
       recorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       recorder.onstop = () => {
@@ -207,17 +230,41 @@ export default function Home() {
         setIsPaused(false);
         announce('Voice recording completed');
 
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+
         // Convert audio to text using a mock transcription
         // In a real implementation, you would send the audioBlob to a transcription service
         const transcribedText = "This is a voice note transcribed to text.";
         setEntryText(transcribedText);
       };
+
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        setIsRecording(false);
+        setIsPaused(false);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      announce('Voice recording started');
+      
     } catch (error) {
       console.error("Error starting recording:", error);
       announce('Failed to start voice recording');
+      
+      let errorMessage = "Failed to start recording. Please check your microphone permissions.";
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = "Microphone access denied. Please allow microphone permissions and try again.";
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = "No microphone found. Please connect a microphone and try again.";
+        }
+      }
+      
       toast({
         title: "Recording Failed",
-        description: "Failed to start recording. Please check your microphone permissions.",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsRecording(false);
@@ -239,11 +286,24 @@ export default function Home() {
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (event?: React.MouseEvent) => {
+    // Prevent event bubbling and default behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-      setIsPaused(false);
+      try {
+        mediaRecorder.stop();
+        setIsRecording(false);
+        setIsPaused(false);
+        announce('Voice recording stopped');
+      } catch (error) {
+        console.error('Error stopping recording:', error);
+        setIsRecording(false);
+        setIsPaused(false);
+      }
     }
   };
 
@@ -356,12 +416,13 @@ export default function Home() {
                     <div className="grid grid-cols-2 gap-2">
                       {!isRecording && !isPaused && (
                         <Button
-                          onClick={startRecording}
+                          onClick={(e) => startRecording(e)}
                           variant="outline"
                           size="sm"
                           className="h-10"
                           disabled={isRecording}
                           aria-label="Start voice recording"
+                          type="button"
                         >
                           <Mic className="mr-2 h-4 w-4" />
                           Record
@@ -370,11 +431,12 @@ export default function Home() {
                       
                       {isRecording && !isPaused && (
                         <Button
-                          onClick={pauseRecording}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); pauseRecording(); }}
                           variant="outline"
                           size="sm"
                           className="h-10"
                           aria-label="Pause recording"
+                          type="button"
                         >
                           <Pause className="mr-2 h-4 w-4" />
                           Pause
@@ -383,11 +445,12 @@ export default function Home() {
                       
                       {isRecording && isPaused && (
                         <Button
-                          onClick={resumeRecording}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); resumeRecording(); }}
                           variant="outline"
                           size="sm"
                           className="h-10"
                           aria-label="Resume recording"
+                          type="button"
                         >
                           <Play className="mr-2 h-4 w-4" />
                           Resume
@@ -396,11 +459,12 @@ export default function Home() {
                       
                       {isRecording && (
                         <Button
-                          onClick={stopRecording}
+                          onClick={(e) => stopRecording(e)}
                           variant="destructive"
                           size="sm"
                           className="h-10"
                           aria-label="Stop recording"
+                          type="button"
                         >
                           Stop
                         </Button>

@@ -49,9 +49,10 @@ export function Navigation() {
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-primary">Echo Journal</h1>
             </div>
-            <div className="hidden sm:flex items-center space-x-4">
-              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Daily Journal</Link>
-              <Link href="/weekly-reflection" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Weekly Reflection</Link>
+            {/* Mobile Navigation - Always visible */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link href="/" className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted">Daily</Link>
+              <Link href="/weekly-reflection" className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted">Weekly</Link>
             </div>
           </div>
           <div className="flex items-center space-x-2">
