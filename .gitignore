@@ -83,3 +83,4 @@ supabase/config.toml.backup
 .vscode/
 .trae/
 .crush/
+.idx/
