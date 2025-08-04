@@ -19,7 +19,7 @@ Ensure your `.env` file contains:
 ```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-GOOGLE_AI_API_KEY=your_google_ai_key
+GOOGLE_GENAI_API_KEY=your_google_ai_key
 ```
 
 ## Deployment
@@ -47,7 +47,7 @@ GOOGLE_AI_API_KEY=your_google_ai_key
    In Cloudflare Pages settings, add:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `GOOGLE_AI_API_KEY`
+   - `GOOGLE_GENAI_API_KEY`
 
 ### Method 2: Manual Upload
 
