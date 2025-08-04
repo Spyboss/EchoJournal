@@ -54,7 +54,7 @@ next-env.d.ts
 *.pem
 *.p12
 *.pfx
-
+.mcp.json
 # API keys and secrets
 api-keys.json
 secrets.json
