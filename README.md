@@ -11,15 +11,14 @@
 ## ✨ Features
 
 ### 📝 **Core Journaling**
-- **Text & Voice Input**: Write or record your daily thoughts
-- **Real-time Sync**: Your entries sync across all devices instantly
+- **Text & Voice Input**: Write or record your daily thoughts. Voice notes are transcribed locally as a placeholder until you wire an external transcription service.
+- **Supabase Storage**: Journal entries are persisted in Supabase Postgres and fetched on demand after each create/delete operation.
 - **Chronological Display**: Clean, organized view of your journal history
 - **Secure Authentication**: Email/password login with Supabase Auth
 
 ### 🤖 **AI-Powered Insights**
-- **Sentiment Analysis**: AI analyzes the emotional tone of your entries
-- **Weekly Reflections**: Get AI-generated summaries and writing prompts
-- **Smart Summaries**: Understand patterns in your thoughts and feelings
+- **Genkit Flows (Opt-In)**: Google Genkit flows are implemented for sentiment analysis and weekly reflections. They require server-side execution and are currently disabled in the static Cloudflare Pages build.
+- **Weekly Reflection Page**: Presents placeholder copy while Genkit access is re-enabled. Integrate with an external Genkit runtime to restore summaries and prompts.
 
 ### 🎨 **Modern Design**
 - **Dark/Light Theme**: Toggle between themes for comfortable reading
@@ -28,10 +27,10 @@
 - **Smooth Animations**: Subtle transitions for a polished experience
 
 ### 🔧 **Technical Features**
-- **Real-time Database**: Supabase PostgreSQL for instant data synchronization
-- **Voice Recording**: Built-in audio recording and playback
+- **Supabase Database**: Authenticated CRUD access to the `journal_entries` and `profiles` tables
+- **Voice Recording**: Built-in audio recording and playback controls with accessibility affordances
 - **Entry Management**: Edit, delete, and organize your entries
-- **Offline Support**: Continue writing even without internet
+- **Accessibility Hooks**: Screen-reader announcements, skip links, and focus management utilities
 
 ## 🚀 Quick Start
 
@@ -56,13 +55,20 @@ Make sure you have the following installed:
    ```
 
 3. **Set up environment variables**
-   
-   The project includes a `.env` file with Supabase configuration. For production, you'll need to:
+
+   Copy `.env.example` to `.env.local` and supply the values below. The application falls back to placeholder Supabase credentials if they are missing, but authentication and storage will fail.
+
+   | Variable | Required? | Description |
+   | --- | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anonymous client key |
+   | `GOOGLE_GENAI_API_KEY` | ⚠️ Optional | Required when running Genkit flows locally |
+
+   To configure Supabase:
    - Create a Supabase project at [Supabase Console](https://supabase.com/dashboard)
-   - Enable Authentication (Email/Password)
-   - Set up your PostgreSQL database
-   - Get a Google AI API key from [Google AI Studio](https://aistudio.google.com)
-   - Update the `.env` file with your credentials
+   - Enable Email/Password authentication
+   - Create the database tables in the [Supabase Setup](#️-supabase-setup) section
+   - Configure redirect URLs under **Authentication → URL configuration** so Supabase can redirect after sign-in
 
 4. **Start the development server**
    ```bash
@@ -123,6 +129,15 @@ EchoJournal/
 └── wrangler.toml           # Cloudflare Pages configuration
 ```
 
+## 📚 Documentation Map
+
+- [Architecture Overview](docs/architecture-overview.md)
+- [Developer Onboarding](docs/developer-onboarding.md)
+- [Component & Hook Reference](docs/component-guide.md)
+- [API & Integration Reference](docs/api-reference.md)
+- [Data Model Reference](docs/data-model.md)
+- [Operations Runbook](docs/operations-runbook.md)
+
 ## 🗄️ Supabase Setup
 
 ### 1. Create Supabase Project
@@ -138,7 +153,9 @@ CREATE TABLE journal_entries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  sentiment TEXT,
+  sentiment_score NUMERIC,
+  sentiment_summary TEXT,
+  title TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -149,7 +166,30 @@ ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
 -- Create policy for users to only access their own entries
 CREATE POLICY "Users can only access their own entries" ON journal_entries
   FOR ALL USING (auth.uid() = user_id);
+
+-- Create profiles table for storing user metadata
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their profile" ON profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can upsert their profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id)
+  TO authenticated;
+
+CREATE POLICY "Users can update their profile" ON profiles
+  FOR UPDATE USING (auth.uid() = id)
+  TO authenticated;
 ```
+
+The application automatically upserts a profile record the first time a user signs in. Confirm that the authenticated role can insert and update the `profiles` table.
 
 ### 3. Deploy to Cloudflare Pages
 ```bash
@@ -163,17 +203,12 @@ npm run build
 
 ## 🤖 AI Features
 
-### Sentiment Analysis
-Every journal entry is automatically analyzed for emotional content using Google's Gemini AI:
-- **Sentiment Detection**: Positive, negative, or neutral
-- **Emotion Summary**: Brief description of the emotional tone
-- **Real-time Processing**: Analysis happens as you write
+Genkit flows are scaffolded in `src/ai/flows` and can be executed when the app runs with a server runtime (e.g., Next.js server actions or an external Genkit worker). In the static Cloudflare Pages export the flows do not execute.
 
-### Weekly Reflections
-Get AI-generated insights about your week:
-- **Pattern Recognition**: Identify recurring themes
-- **Writing Prompts**: Personalized suggestions for deeper reflection
-- **Mood Trends**: Track emotional patterns over time
+- **Sentiment Analysis (`analyzeSentiment`)**: Accepts a journal entry string and returns `{ sentiment, summary }`. Wire this flow into an API route (e.g., `/api/sentiment`) and call it from `JournalService.analyzeSentiment` to enrich entries.
+- **Weekly Reflection (`analyzeWeeklyReflection`)**: Accepts concatenated entries and returns `{ summary, prompt }`. The weekly reflection page currently surfaces placeholder text until this flow is restored.
+
+Run `npm run genkit:dev` to start the Genkit dev server locally and test the flows with a valid `GOOGLE_GENAI_API_KEY`.
 
 ## 🎨 Customization
 
@@ -191,31 +226,21 @@ The app supports both light and dark themes with a smooth toggle transition. The
 
 ## 🧪 Testing
 
-The project includes comprehensive testing setup:
+Test commands are configured in `package.json`, but the repository does not currently include unit or integration test suites. Add tests alongside new features and execute them with:
 
 ```bash
-# Run all tests
+# Run all tests (if present)
 npm run test
 
-# Run tests in watch mode
-npm run test:watch
-
-# Run CI tests (includes type checking and linting)
+# Type checking and linting used in CI
 npm run test:ci
 ```
 
-### Test Coverage
-- **API Routes**: All endpoints tested
-- **Firestore Operations**: Database interactions
-- **Component Testing**: UI component behavior
-- **Integration Tests**: End-to-end workflows
+## 📱 Device Support
 
-## 📱 Mobile Support
-
-- **Responsive Design**: Optimized for all screen sizes
-- **Touch Gestures**: Intuitive mobile interactions
-- **Voice Recording**: Native audio recording on mobile
-- **Offline Mode**: Continue journaling without internet
+- **Responsive Layout**: Tailwind CSS utility classes ensure the journal and weekly reflection pages adapt from mobile to desktop viewports.
+- **Voice Recording**: MediaRecorder-based capture works in browsers that expose microphone APIs. Mobile Safari currently requires user interaction to begin recording.
+- **Accessibility Enhancements**: Skip links, focus management, and toast announcements improve keyboard and assistive technology support.
 
 ## 🔒 Security
 
@@ -238,6 +263,13 @@ npm run build
 npm run build
 # Deploy to Vercel
 ```
+
+## 🚦 Current Limitations
+
+- AI features that depend on Genkit (`src/ai/flows/*`) require a server runtime and do not execute in the static Cloudflare Pages build.
+- `JournalService.analyzeSentiment` expects a `/api/sentiment` route, which is not implemented. Connect it to an external service before enabling sentiment enrichment.
+- Voice note transcription currently returns placeholder text from the client-side mock transcription.
+- Real-time Supabase subscriptions are not enabled; entries refresh after explicit CRUD operations.
 
 ## 🤝 Contributing
 
@@ -280,3 +312,5 @@ If you have any questions or need help:
   <p><strong>Made with ❤️ for better journaling</strong></p>
   <p>Start your mindful writing journey today!</p>
 </div>
+
+_Last updated: 2024-11-22_

@@ -1,5 +1,7 @@
 # **App Name**: Echo Journal
 
+> _Historical design note_: This blueprint captures the initial product pitch. The production implementation migrated from Firebase to Supabase, uses Cloudflare Pages for hosting, and disables AI flows in the static build. Refer to the updated documentation in this folder for the current architecture.
+
 ## Core Features:
 
 - Text Entry: Simple text input area for users to write their daily journal entries.
